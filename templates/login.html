@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>Login</h2>
+    <form method="post" class="space-y">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div style="color:#b91c1c">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="space-y">
+            <div class="row">
+                {{ form.username }}
+            </div>
+            <div class="row">
+                {{ form.password }}
+            </div>
+            <div class="row" style="justify-content:flex-end">
+                <button type="submit">Sign in</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

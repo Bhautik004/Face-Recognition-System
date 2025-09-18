@@ -1,0 +1,172 @@
+{% load i18n %}
+
+{# Unique container id keyed to the input's id #}
+{% with wrap_id=widget.attrs.id|add:"__wrap" %}
+<div id="{{ wrap_id }}" class="capture-file-widget">
+
+    {# ClearableFileInput (current file + clear) #}
+    <div class="mb-2">
+        {% if widget.is_initial %}
+        <div class="mb-1">
+            <span class="text-muted">{% trans "Currently" %}:</span>
+            {% if widget.value.url %}
+            <a href="{{ widget.value.url }}" target="_blank" rel="noopener">{{ widget.value }}</a>
+            {% else %}
+            <span>{{ widget.value }}</span>
+            {% endif %}
+        </div>
+        {% if not widget.required %}
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="{{ widget.checkbox_name }}"
+                id="{{ widget.checkbox_id }}">
+            <label class="form-check-label" for="{{ widget.checkbox_id }}">{% trans "Clear" %}</label>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- Actual file input -->
+        <input type="{{ widget.type }}" name="{{ widget.name }}" accept="image/*" {%
+            include "django/forms/widgets/attrs.html" %}>
+    </div>
+
+    <!-- Camera controls -->
+    <div class="d-flex gap-2 mb-2">
+        <button type="button" class="button use-camera" data-role="use">Use Camera</button>
+        <button type="button" class="button stop-camera" data-role="stop" style="display:none;">Stop</button>
+        <button type="button" class="button capture" data-role="capture" style="display:none;">Capture</button>
+        <button type="button" class="button mirror" data-role="mirror" style="display:none;">Mirror: ON</button>
+    </div>
+
+    <!-- Live preview + canvas -->
+    <div class="camera-wrap" data-role="wrap" style="display:none;">
+        <video playsinline autoplay style="max-width:320px;border:1px solid #444;border-radius:6px;"></video>
+    </div>
+
+    <canvas data-role="canvas" style="display:none;"></canvas>
+</div>
+
+<script>
+    (function () {
+        const wrapId = "{{ wrap_id|escapejs }}";
+
+        function init() {
+            const root = document.getElementById(wrapId);
+            if (!root) return;
+
+            const fileIn = root.querySelector('input[type="file"]');
+            const btnUse = root.querySelector('[data-role="use"]');
+            const btnStop = root.querySelector('[data-role="stop"]');
+            const btnCap = root.querySelector('[data-role="capture"]');
+            const btnMir = root.querySelector('[data-role="mirror"]');
+            const wrap = root.querySelector('[data-role="wrap"]');
+            const video = wrap.querySelector('video');
+            const canvas = root.querySelector('[data-role="canvas"]');
+
+            let stream = null;
+            let mirrorPreview = true; // default: ON (selfie-style preview)
+
+            function ui(on) {
+                wrap.style.display = on ? "" : "none";
+                btnCap.style.display = on ? "" : "none";
+                btnStop.style.display = on ? "" : "none";
+                btnMir.style.display = on ? "" : "none";
+                btnUse.style.display = on ? "none" : "";
+                wrap.classList.toggle('mirrored', on && mirrorPreview);
+                btnMir.textContent = "Mirror: " + (mirrorPreview ? "ON" : "OFF");
+            }
+
+            async function startCamera() {
+                if (!navigator.mediaDevices?.getUserMedia) {
+                    alert("Camera not supported in this browser.");
+                    return;
+                }
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                    video.srcObject = stream;
+                    video.play?.();
+                    ui(true);
+                } catch (e) {
+                    alert("Could not access camera: " + e.message);
+                }
+            }
+
+            function stopCamera() {
+                try { stream?.getTracks()?.forEach(t => t.stop()); } catch (_) { }
+                stream = null;
+                ui(false);
+            }
+
+            function attachBlobToFileInput(blob, name) {
+                const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileIn.files = dt.files;
+            }
+
+            // Save UN-MIRRORED image (correct orientation), even if preview is mirrored
+            function capture() {
+                const w = video.videoWidth || 640, h = video.videoHeight || 480;
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+
+                if (mirrorPreview) {
+                    // Preview is mirrored; draw the inverse to get a correct photo
+                    ctx.save();
+                    ctx.translate(w, 0);
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(video, 0, 0, w, h);
+                    ctx.restore();
+                } else {
+                    // Preview not mirrored; draw normally
+                    ctx.drawImage(video, 0, 0, w, h);
+                }
+
+                canvas.toBlob(function (blob) {
+                    if (!blob) { alert("Failed to capture."); return; }
+                    attachBlobToFileInput(blob, "capture.jpg");
+                    stopCamera();
+                    alert("Captured image attached. Click Save.");
+                }, "image/jpeg", 0.92);
+            }
+
+            // Toggle preview mirroring
+            function toggleMirror() {
+                mirrorPreview = !mirrorPreview;
+                wrap.classList.toggle('mirrored', mirrorPreview);
+                btnMir.textContent = "Mirror: " + (mirrorPreview ? "ON" : "OFF");
+            }
+
+            // Bind events
+            btnUse.addEventListener("click", startCamera);
+            btnStop.addEventListener("click", stopCamera);
+            btnCap.addEventListener("click", capture);
+            btnMir.addEventListener("click", toggleMirror);
+            fileIn.addEventListener("change", stopCamera);
+        }
+
+        if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", init); }
+        else { init(); }
+    })();
+</script>
+
+
+<style>
+    .capture-file-widget .button {
+        padding: 6px 10px;
+        border: 1px solid #555;
+        border-radius: 6px;
+        background: #222;
+        color: #ddd;
+        cursor: pointer
+    }
+
+    .capture-file-widget .button:hover {
+        background: #2a2a2a
+    }
+
+    /* Mirror the live preview when .mirrored is on */
+    .camera-wrap.mirrored video {
+        transform: scaleX(-1);
+    }
+</style>
+{% endwith %}

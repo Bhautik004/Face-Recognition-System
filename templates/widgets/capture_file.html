@@ -1,0 +1,84 @@
+{% load i18n %}
+
+<div class="capture-file-widget">
+    <!-- regular file input (upload) -->
+    {{ widget }}
+
+    <div class="mt-2 d-flex gap-2">
+        <button type="button" class="button use-camera">Use Camera</button>
+        <button type="button" class="button stop-camera" style="display:none;">Stop</button>
+        <button type="button" class="button capture" style="display:none;">Capture</button>
+    </div>
+
+    <div class="mt-2" style="display:none;" data-camera>
+        <video playsinline autoplay style="max-width: 320px; border:1px solid #444; border-radius:6px;"></video>
+    </div>
+    <canvas style="display:none;"></canvas>
+</div>
+
+<script>
+    (function () {
+        const root = document.currentScript.closest('.capture-file-widget');
+        const input = root.querySelector('input[type=file]');
+        const btnUse = root.querySelector('.use-camera');
+        const btnStop = root.querySelector('.stop-camera');
+        const btnCap = root.querySelector('.capture');
+        const camBox = root.querySelector('[data-camera]');
+        const video = camBox.querySelector('video');
+        const canvas = root.querySelector('canvas');
+        let stream = null;
+
+        function stop() {
+            if (stream) { stream.getTracks().forEach(t => t.stop()); }
+            stream = null;
+            camBox.style.display = 'none';
+            btnStop.style.display = 'none';
+            btnCap.style.display = 'none';
+            btnUse.style.display = '';
+        }
+
+        btnUse.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                video.srcObject = stream;
+                camBox.style.display = '';
+                btnStop.style.display = '';
+                btnCap.style.display = '';
+                btnUse.style.display = 'none';
+            } catch (e) { alert("Camera error: " + e.message); }
+        });
+
+        btnStop.addEventListener('click', stop);
+
+        btnCap.addEventListener('click', () => {
+            const w = video.videoWidth || 640, h = video.videoHeight || 480;
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+            canvas.toBlob(blob => {
+                const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                stop();
+                alert("Captured image attached. Click Save.");
+            }, 'image/jpeg', 0.92);
+        });
+
+        input.addEventListener('change', stop);
+    })();
+</script>
+
+<style>
+    .capture-file-widget .button {
+        padding: 6px 10px;
+        border: 1px solid #555;
+        border-radius: 6px;
+        background: #222;
+        color: #ddd;
+        cursor: pointer
+    }
+
+    .capture-file-widget .button:hover {
+        background: #2a2a2a
+    }
+</style>

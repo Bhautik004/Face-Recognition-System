@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Student Home{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>Student Dashboard</h2>
+    <p>Welcome, {{ user.username }}.</p>
+
+    <!-- Profile button -->
+    <p>
+        <a class="btn" href="{% url 'profile_edit' %}">Edit Profile</a>
+    </p>
+
+</div>
+{% endblock %}

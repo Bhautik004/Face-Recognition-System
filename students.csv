@@ -1,0 +1,4 @@
+username,email,first_name,last_name,student_code,phone,is_active,password
+s101,alice@example.com,Alice,Lee,STU-101,5551112222,True,Al!ce@2025
+s102,bob@example.com,Bob,Patel,STU-102,5551113333,True,BoB@2025
+s103,carol@example.com,Carol,Wong,STU-103,5551114444,True,  # empty will use default

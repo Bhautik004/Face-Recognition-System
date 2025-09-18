@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h2>Edit Profile</h2>
+    <p><strong>Username:</strong> {{ user.username }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div>
+            <label for="{{ form.first_name.id_for_label }}">First name</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+            <div class="text-danger">
+                {{ form.first_name.errors }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.last_name.id_for_label }}">Last name</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+            <div class="text-danger">
+                {{ form.last_name.errors }}
+            </div>
+            {% endif %}
+        </div>
+
+
+        <div>
+            <label>Phone</label><br>
+            {{ form.phone }}
+        </div>
+        <button type="submit">Save</button>
+    </form>
+</div>
+{% endblock %}
