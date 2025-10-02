@@ -25,6 +25,7 @@ STATIC = os.path.join(BASE_DIR, "staticfiles")
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Quick-start development settings - unsuitable for production
@@ -56,6 +57,8 @@ INSTALLED_APPS = [
     # theme app
     # Local
     "apps.accounts",
+    "apps.biometrics.apps.BiometricsConfig",
+
 
 ]
 AUTH_USER_MODEL = "accounts.User"

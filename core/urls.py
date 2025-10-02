@@ -23,6 +23,11 @@ from apps.accounts.views import LandingView, RoleLoginView, role_redirect, profe
 from django.contrib.auth.views import LogoutView
 from django.conf import settings
 from django.conf.urls.static import static
+from apps.biometrics import admin_views
+from apps.biometrics.admin_views import train_all_view 
+from django.contrib import admin
+from django.urls import path, include
+from apps.biometrics.admin_views import train_all_view 
 
 @login_required
 def route_after_login(request):
@@ -46,9 +51,13 @@ urlpatterns = [
     path("prof/home/", professor_home, name="prof_home"),
     path("student/home/", student_home, name="student_home"),
 
+    path('admin/biometrics/train-all/', admin.site.admin_view(admin_views.train_all_view), name='biometrics_train_all'),
+
     path("admin/", admin.site.urls),
     
     path('accounts/', include('apps.accounts.urls')),
+
+
 
 ]
 

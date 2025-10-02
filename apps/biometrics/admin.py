@@ -1,22 +1,22 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.urls import path, reverse
 from django import forms
+from django.http import HttpResponseRedirect
 from .models import UserFace
-from .forms import CaptureImageWidget
+from . import services
+# reuse your widget template: accounts/widgets/capture_file.html
+class CaptureImageWidget(forms.ClearableFileInput):
+    template_name = "accounts/widgets/capture_file.html"
 
-class UserFaceAdminForm(forms.ModelForm):
+class UserFaceInlineForm(forms.ModelForm):
     class Meta:
         model = UserFace
-        fields = "__all__"
-        widgets = {
-            "image": CaptureImageWidget,  # inject our capture widget
-        }
+        fields = ("image",)
+        widgets = {"image": CaptureImageWidget}
 
-@admin.register(UserFace)
-class UserFaceAdmin(admin.ModelAdmin):
-    form = UserFaceAdminForm
-    list_display = ("id", "user", "created_at")
-    autocomplete_fields = ("user",)
+class UserFaceInline(admin.TabularInline):
+    model = UserFace
+    form = UserFaceInlineForm
+    extra = 3   # show 3 rows ready to capture/upload
 
-    def has_module_permission(self, request):
-        # Only superusers can see/manage faces (adjust if you want staff too)
-        return request.user.is_superuser
+

@@ -1,0 +1,9 @@
+<!-- templates/admin/index.html -->
+{% extends "admin/index.html" %}
+{% block content %}
+<div class="module">
+    <h2>Face Model</h2>
+    <p><a class="button default" href="{% url 'biometrics_train_all' %}">Train Model Now</a></p>
+</div>
+{{ block.super }}
+{% endblock %}
