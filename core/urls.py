@@ -28,6 +28,17 @@ from apps.biometrics.admin_views import train_all_view
 from django.contrib import admin
 from django.urls import path, include
 from apps.biometrics.admin_views import train_all_view 
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from apps.academics.views import (DepartmentViewSet, CourseViewSet, ProfessorViewSet,
+                             RoomViewSet, CourseAssignmentViewSet)
+
+router = DefaultRouter()
+router.register(r"departments", DepartmentViewSet)
+router.register(r"courses", CourseViewSet)
+router.register(r"professors", ProfessorViewSet)
+router.register(r"rooms", RoomViewSet)
+router.register(r"assignments", CourseAssignmentViewSet)
 
 @login_required
 def route_after_login(request):

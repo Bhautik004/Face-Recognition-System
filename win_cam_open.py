@@ -21,4 +21,4 @@ def test_camera(index):
     cv2.destroyAllWindows()
 
 # Try with different indexes until your USB webcam shows up
-test_camera(1)   # start with 1
+test_camera(0)   # start with 1

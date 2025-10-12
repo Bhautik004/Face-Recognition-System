@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     # theme app
     # Local
     "apps.accounts",
+    "apps.academics",
     "apps.biometrics.apps.BiometricsConfig",
 
 
