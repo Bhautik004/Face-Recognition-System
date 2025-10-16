@@ -1,0 +1,14 @@
+Django==3.0.7
+djangorestframework~=3.12
+djangorestframework-simplejwt~=4.7
+django-filter~=2.4
+django-import-export~=2.8
+django-adminlte3~=0.1
+numpy~=1.23
+opencv-python~=4.7
+insightface~=0.7
+onnxruntime~=1.14
+Pillow~=9.5
+scikit-learn~=1.2
+scipy~=1.9
+requests~=2.31

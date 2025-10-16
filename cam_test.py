@@ -92,4 +92,4 @@ def main(cam_src=1):
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    main(1)  # 0 = default webcam, or pass RTSP/HTTP URL
+    main(0)  # 0 = default webcam, or pass RTSP/HTTP URL
