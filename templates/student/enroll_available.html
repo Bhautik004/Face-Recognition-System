@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Available Courses to Enroll</h2>
+
+{% if messages %}{% for m in messages %}
+<div class="alert">{{ m }}</div>
+{% endfor %}{% endif %}
+
+{% if assignments %}
+<table>
+  <thead>
+    <tr>
+      <th>Course</th><th>Professor</th><th>Term/Section</th><th>Seats</th><th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for a in assignments %}
+    <tr>
+      <td>{{ a.course.code }} — {{ a.course.title }}</td>
+      <td>{{ a.professor.user.get_full_name|default:a.professor.user.username }}</td>
+      <td>{{ a.term }} {{ a.section }}</td>
+      <td>{{ a.seats_taken }} / {{ a.capacity }}</td>
+      <td>
+        <form method="post" action="{% url 'academics:student_enroll_apply' a.id %}">
+          {% csrf_token %}
+          <button type="submit">Enroll</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No courses currently available for self-enrollment.</p>
+{% endif %}
+
+<p><a href="{% url 'academics:student_enroll_mine' %}">My Enrollments</a></p>
+{% endblock %}

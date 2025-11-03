@@ -14,6 +14,8 @@ import os
 from apps import accounts
 from pathlib import Path
 
+from apps.academics.scheduler import start_scheduler
+
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -56,9 +58,13 @@ INSTALLED_APPS = [
     "import_export",
     # theme app
     # Local
-    "apps.accounts",
-    "apps.academics",
+    "apps.academics.apps.AcademicsConfig",
+    "apps.accounts.apps.AccountsConfig",
     "apps.biometrics.apps.BiometricsConfig",
+
+    
+  
+
 
 
 ]
@@ -109,6 +115,16 @@ LOGIN_REDIRECT_URL = "route_after_login"   # after successful login
 LOGOUT_REDIRECT_URL = "landing"
 
 WSGI_APPLICATION = 'core.wsgi.application'
+# settings.py
+# QR_SERVER_SECRET = "replace-with-32+char-random-secret"
+RUN_MAIN = os.environ.get("RUN_MAIN") == "true"
+# settings.py
+QR_SERVER_SECRET = "replace-with-a-long-random-secret"
+
+
+if RUN_MAIN:  # Prevent double scheduler in Django auto-reloader
+    start_scheduler()
+
 
 
 # Database

@@ -1,0 +1,58 @@
+{# templates/academics/session_detail.html #}
+
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ session.course.code }} — Session {{ session.id }}</h2>
+
+<form method="post" action="{% url 'academics:session_update' session.id %}">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" {% if session.is_locked %}disabled{% endif %}>Save Session</button>
+</form>
+
+<hr>
+
+<h3>Attendance</h3>
+
+<form method="post" action="{% url 'academics:attendance_bulk_update' session.id %}">
+  {% csrf_token %}
+  <table>
+    <thead>
+      <tr>
+        <th>Roll No</th><th>Name</th><th>Status</th><th>Quick</th><th>Save</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in attendance %}
+        <tr>
+          <td>{{ a.student.roll_no }}</td>
+          <td>{{ a.student.user.get_full_name|default:a.student.user.username }}</td>
+          <td>{{ a.get_status_display }}</td>
+          <td>
+            <label><input type="checkbox" name="status_present[]" value="{{ a.student.id }}"> Present</label>
+            <label><input type="checkbox" name="status_absent[]" value="{{ a.student.id }}"> Absent</label>
+            <label><input type="checkbox" name="status_late[]" value="{{ a.student.id }}"> Late</label>
+            <label><input type="checkbox" name="status_excused[]" value="{{ a.student.id }}"> Excused</label>
+          </td>
+          <td>
+            <form method="post" action="{% url 'academics:attendance_update_one' session.id a.student.id %}">
+              {% csrf_token %}
+              <select name="status">
+                <option value="present" {% if a.status == "present" %}selected{% endif %}>Present</option>
+                <option value="late" {% if a.status == "late" %}selected{% endif %}>Late</option>
+                <option value="absent" {% if a.status == "absent" %}selected{% endif %}>Absent</option>
+                <option value="excused" {% if a.status == "excused" %}selected{% endif %}>Excused</option>
+              </select>
+              <input type="hidden" name="method" value="manual">
+              <input type="text" name="note" placeholder="note (optional)" value="{{ a.note }}">
+              <button type="submit" {% if session.is_locked %}disabled{% endif %}>Save</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button type="submit" {% if session.is_locked %}disabled{% endif %}>Bulk Save</button>
+</form>
+
+{% endblock %}

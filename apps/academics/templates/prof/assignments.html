@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>My Assignments</h2>
+<table>
+  <tr><th>Course</th><th>Term/Section</th><th>Actions</th></tr>
+  {% for a in assignments %}
+  <tr>
+    <td>{{ a.course.code }} — {{ a.course.title }}</td>
+    <td>{{ a.term }} {{ a.section }}</td>
+    <td>
+      <a href="{% url 'academics:prof_session_create' a.id %}">Create Session</a>
+    </td>
+  </tr>
+  {% empty %}<tr><td colspan="3">No assignments.</td></tr>{% endfor %}
+</table>
+{% endblock %}

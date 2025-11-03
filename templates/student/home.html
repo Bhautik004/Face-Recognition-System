@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Student Dashboard</h1>
+<p>Welcome, {{ student.user.get_full_name|default:student.user.username }}!</p>
+
+<p>
+    <!-- <a href="{% url 'academics:student_enroll_available' %}">Browse & Enroll</a> | -->
+    <a href="{% url 'academics:student_enroll_mine' %}">My Enrollments</a>
+</p>
+{% endblock %}

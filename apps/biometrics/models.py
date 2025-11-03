@@ -21,6 +21,8 @@ class UserFace(models.Model):
         return f"{self.user} — {self.created_at:%Y-%m-%d %H:%M}"
 
 class UserFaceEmbedding(models.Model):
+    # student = models.OneToOneField("academics.Student", on_delete=models.CASCADE, related_name="embedding")
+    # student = models.OneToOneField("academics.Student", on_delete=models.CASCADE, related_name="embedding", null=True, blank=True)
     face = models.OneToOneField(UserFace, on_delete=models.CASCADE, related_name="embedding")
     vector = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)

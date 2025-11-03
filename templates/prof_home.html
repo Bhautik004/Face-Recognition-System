@@ -1,8 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Professor Home{% endblock %}
 {% block content %}
-<div class="card">
-    <h2>Professor Dashboard</h2>
-    <p>Welcome, {{ user.username }}.</p>
+
+<h2>Professor Dashboard</h2>
+<p>Welcome, {{ request.user.username }}.</p>
+
+<div style="margin-top:20px;">
+
+    <a href="{% url 'academics:prof_assignment_list' %}" class="btn btn-primary">📚 My Courses</a>
+
+    <a href="{% url 'academics:prof_session_list' %}" class="btn btn-success">🕒 Sessions</a>
+
+   
+
+
+
 </div>
+
 {% endblock %}

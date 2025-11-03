@@ -2,8 +2,25 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 def user_photo_path(instance, filename):
-    return f"profiles/{instance.id or 'new'}/{filename}"
-    
+    """
+    Save uploaded profile photos as:
+    profiles/<username>.jpg
+
+    Example:
+        media/profiles/bhautik.jpg
+    """
+    import os
+    from django.utils.text import slugify
+
+    # get file extension safely (e.g. .jpg, .png)
+    ext = os.path.splitext(filename)[1] or ".jpg"
+
+    # make username safe for filesystem (no spaces, etc.)
+    username = slugify(instance.username or "user")
+
+    return f"profiles/{username}{ext}"
+
+
 class User(AbstractUser):
     ADMIN = "admin"
     PROFESSOR = "professor"

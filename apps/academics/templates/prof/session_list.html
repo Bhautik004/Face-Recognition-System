@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+{% load extra_filters %}
+<h2>My Sessions</h2>
+
+<form method="get" style="margin:10px 0;">
+  <label>Search by Session No:</label>
+  <input type="text" name="q" value="{{ q }}" placeholder="e.g. 58" style="width:120px;">
+  <label style="margin-left:12px;">Per page:</label>
+  <select name="per_page" onchange="this.form.submit()">
+    {% for n in per_page_choices %}
+
+
+
+    <option value="{{ n }}" {% if per_page|equal:n %}selected{% endif %}>{{ n }}</option>
+
+
+    {% endfor %}
+  </select>
+
+  <button type="submit">Search</button>
+  {% if q %}
+  <a href="{% url 'academics:prof_session_list' %}">Clear</a>
+  {% endif %}
+</form>
+
+<p style="margin:6px 0; font-size:0.95rem;">
+  Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ total }}
+</p>
+
+<table border="1" cellpadding="6" cellspacing="0">
+  <tr>
+    <th>Session No</th>
+    <th>Course</th>
+    <th>Room</th>
+    <th>Start</th>
+    <th>End</th>
+    <th>Status</th>
+    <th>Actions</th>
+  </tr>
+  {% for s in sessions %}
+  <tr data-session-id="{{ s.id }}" data-next-live-url="{% url 'academics:prof_session_live' s.id %}"
+    data-status-url="{% url 'academics:prof_session_status' s.id %}">
+    <td>{{ s.id }}</td>
+    <td>{{ s.course_assignment.course.code }}</td>
+    <td>{{ s.room.name }}</td>
+    <td>{{ s.start_time }}</td>
+    <td>{{ s.end_time }}</td>
+    <td>{{ s.get_status_display }}</td>
+    <td>
+      {% if s.status == 'scheduled' %}
+      <a class="btn" href="{% url 'academics:prof_session_start' s.id %}">Start</a>
+      {% elif s.status == 'running' %}
+      <a class="btn" href="{% url 'academics:prof_session_live' s.id %}">Live (QR)</a>
+      <a class="btn" href="{% url 'academics:prof_session_stop' s.id %}">Stop</a>
+      {% elif s.is_locked %}
+      <em>Locked</em>
+      {% else %}
+      <em>Completed</em>
+      {% endif %}
+      {% if not s.is_locked or request.user.is_staff %}
+      <a class="btn" href="{% url 'academics:session_detail' s.id %}">Manage</a>
+      {% endif %}
+    </td>
+  </tr>
+  {% empty %}
+  <tr>
+    <td colspan="7">No sessions.</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<!-- Pagination controls -->
+{% if page_obj.paginator.num_pages > 1 %}
+<div style="margin-top:10px;">
+  {% if page_obj.has_previous %}
+  <a href="?page=1{% if preserved_qs %}&{{ preserved_qs }}{% endif %}">&laquo; First</a>
+  <a href="?page={{ page_obj.previous_page_number }}{% if preserved_qs %}&{{ preserved_qs }}{% endif %}">Prev</a>
+  {% endif %}
+
+  <span style="margin:0 8px;">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+  </span>
+
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}{% if preserved_qs %}&{{ preserved_qs }}{% endif %}">Next</a>
+  <a href="?page={{ page_obj.paginator.num_pages }}{% if preserved_qs %}&{{ preserved_qs }}{% endif %}">Last &raquo;</a>
+  {% endif %}
+</div>
+{% endif %}
+
+<script>
+  const nextRow = document.querySelector('[data-next-live-url]');
+  if (nextRow) {
+    const statusUrl = nextRow.getAttribute('data-status-url');
+    const liveUrl = nextRow.getAttribute('data-next-live-url');
+    async function pollNext() {
+      try {
+        const r = await fetch(statusUrl, { cache: "no-store" });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (d.ok && d.status === "running") {
+          window.location.href = liveUrl;
+        }
+      } catch (e) { }
+    }
+    setInterval(pollNext, 5000);
+    pollNext();
+  }
+</script>
+{% endblock %}

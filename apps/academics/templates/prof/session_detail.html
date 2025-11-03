@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>
+    {{ session.course_assignment.course.code }} — {{ session.course_assignment.course.title }}
+    ({{ session.course_assignment.term }}{% if session.course_assignment.section %}-
+    {{ session.course_assignment.section}}{% endif %})
+</h2>
+<p><strong>Room:</strong> {{ session.room.name }} ({{ session.room.building }})</p>
+<p><strong>When:</strong> {{ session.start_time }} – {{ session.end_time }}</p>
+
+<hr>
+
+<h3>Edit session</h3>
+
+<div class="alert alert-warning">This session is locked. You can view, but not edit.</div>
+
+
+<form method="post" action="{% url 'academics:session_update' session.id %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" {% if session.is_locked %}disabled{% endif %}>Save Session</button>
+</form>
+
+
+<hr>
+<!-- Lock / Unlock controls -->
+<form method="post" action="{% url 'academics:session_lock' session.id %}" style="display:inline;">
+    {% csrf_token %}
+    <button type="submit" {% if session.is_locked %}disabled{% endif %}>Lock</button>
+</form>
+
+{% if request.user.is_staff %}
+<form method="post" action="{% url 'academics:session_unlock' session.id %}" style="display:inline;">
+    {% csrf_token %}
+    <button type="submit" {% if not session.is_locked %}disabled{% endif %}>Unlock</button>
+</form>
+{% endif %}
+
+<hr>
+
+<h3>Attendance (Present {{ stats.present }}/{{ stats.total }})</h3>
+
+<form method="post" action="{% url 'academics:attendance_bulk_update' session.id %}">
+    {% csrf_token %}
+    <table>
+        <thead>
+            <tr>
+                <th>Roll</th>
+                <th>Student</th>
+                <th>Current</th>
+                <th>Quick Mark</th>
+                <th>Save Row</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in attendance %}
+            <tr>
+                <td>{{ a.student.roll_no|default:"—" }}</td>
+                <td>{{ a.student.user.get_full_name|default:a.student.user.username }}</td>
+                <td>{{ a.status }}</td>
+
+                <td>
+                    <label><input type="checkbox" name="status_present[]" value="{{ a.student_id }}"> Present</label>
+                    <label><input type="checkbox" name="status_late[]" value="{{ a.student_id }}"> Late</label>
+                    <label><input type="checkbox" name="status_absent[]" value="{{ a.student_id }}"> Absent</label>
+                    <label><input type="checkbox" name="status_rejected[]" value="{{ a.student_id }}"> Rejected</label>
+                </td>
+
+                <td>
+               
+                    <div>
+                        <form method="post" action="{% url 'academics:attendance_update_one' session.id a.student_id %}"
+                            style="display:inline;">
+                            {% csrf_token %}
+                            <select name="status">
+                                <option value="Present" {% if a.status  ==  "Present" %} selected{% endif %}>Present
+                                </option>
+                                <option value="Late" {% if a.status  ==  "Late" %} selected{% endif %}>Late</option>
+                                <option value="Absent" {% if a.status  ==  "Absent" %} selected{% endif %}>Absent</option>
+                                <option value="Rejected" {% if a.status  ==  "Rejected" %} selected{% endif %}>Rejected
+                                </option>
+                            </select>
+                            <input type="hidden" name="method" value="manual">
+                            <button type="submit" {% if session.is_locked %}disabled{% endif %} >Save</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Attendance table: disable Save/checkboxes when locked -->
+    <button type="submit" {% if session.is_locked %}disabled{% endif %}>Bulk Save</button>
+
+</form>
+
+
+{% endblock %}

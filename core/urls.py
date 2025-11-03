@@ -19,7 +19,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, include
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
-from apps.accounts.views import LandingView, RoleLoginView, role_redirect, professor_home, student_home, admin_home
+from apps.accounts.views import LandingView, RoleLoginView, role_redirect, professor_home
 from django.contrib.auth.views import LogoutView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -32,6 +32,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from apps.academics.views import (DepartmentViewSet, CourseViewSet, ProfessorViewSet,
                              RoomViewSet, CourseAssignmentViewSet)
+from apps.academics.views import bulk_assign_department_csv 
 
 router = DefaultRouter()
 router.register(r"departments", DepartmentViewSet)
@@ -60,13 +61,21 @@ urlpatterns = [
     # role homes (stub pages; replace with your real dashboards)
    
     path("prof/home/", professor_home, name="prof_home"),
-    path("student/home/", student_home, name="student_home"),
+    # path("student/home/", student_home, name="student_home"),
 
     path('admin/biometrics/train-all/', admin.site.admin_view(admin_views.train_all_view), name='biometrics_train_all'),
+    # path("academics/bulk-assign-department", bulk_assign_department_csv, name="bulk_assign_department_csv"),
 
     path("admin/", admin.site.urls),
     
     path('accounts/', include('apps.accounts.urls')),
+
+    # path('academics/', include('apps.academics.urls')),
+    # path("",include("apps.academics.urls")),
+    path("academics/", include(("apps.academics.urls", "academics"), namespace="academics")),
+
+    path("student/home", include(("apps.academics.urls", "academics"), namespace="academics")),
+
 
 
 

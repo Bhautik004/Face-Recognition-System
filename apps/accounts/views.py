@@ -32,7 +32,7 @@ class RoleLoginView(LoginView):
 class StudentProfileUpdateView(LoginRequiredMixin, UpdateView):
     form_class = StudentProfileForm
     template_name = "accounts/profile_edit.html"
-    success_url = reverse_lazy("student_home")  # change as needed
+    success_url = reverse_lazy("academics:student_home")  # change as needed
 
     def get_object(self, queryset=None):
         # only allow editing own profile
@@ -61,7 +61,9 @@ def role_redirect(request):
     # otherwise use your app roles
     if getattr(user, "role", "student") == "professor":
         return redirect("prof_home")
-    return redirect("student_home")
+    
+    return redirect("academics:student_home")
+    
 
 # --- Simple stub pages (replace with your dashboards) ---
 @login_required
@@ -72,9 +74,6 @@ def admin_home(request):
 def professor_home(request):
     return render(request, "prof_home.html")
 
-@login_required
-def student_home(request):
-    return render(request, "student_home.html")
 
 
 @login_required
