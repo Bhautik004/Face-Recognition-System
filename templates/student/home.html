@@ -7,4 +7,160 @@
     <!-- <a href="{% url 'academics:student_enroll_available' %}">Browse & Enroll</a> | -->
     <a href="{% url 'academics:student_enroll_mine' %}">My Enrollments</a>
 </p>
+<hr>
+<h3>Scan Attendance QR</h3>
+<h3>Scan QR</h3>
+
+<button id="openScannerBtn">📷 Open Camera</button>
+<button id="closeScannerBtn" style="display:none;">Close</button>
+
+<div id="reader" style="width:320px; max-width:90vw; display:none;"></div>
+<pre id="out"></pre>
+<div id="gps"></div>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<script>
+    // --- CSRF helper for Django
+    function getCookie(name) {
+        let v = null;
+        document.cookie.split(";").forEach(c => {
+            c = c.trim();
+            if (c.startsWith(name + "=")) v = decodeURIComponent(c.slice(name.length + 1));
+        });
+        return v;
+    }
+    const scanUrl = "{% url 'academics:scan_qr' %}";  // generate from Django to avoid typos
+
+    // --- GPS display (optional)
+    async function showGps() {
+        const el = document.getElementById('gps');
+        try {
+            const pos = await new Promise((res, rej) =>
+                navigator.geolocation.getCurrentPosition(res, rej,
+                    { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 })
+            );
+            el.textContent = `lat=${pos.coords.latitude.toFixed(6)}, lng=${pos.coords.longitude.toFixed(6)}, acc=${Math.round(pos.coords.accuracy)}m`;
+        } catch (e) {
+            el.textContent = 'GPS error: ' + e.message;
+        }
+    }
+    showGps();
+    setInterval(showGps, 5000);
+
+    // --- Scanner
+    const out = document.getElementById('out');
+    const readerDiv = document.getElementById('reader');
+    const btnOpen = document.getElementById('openScannerBtn');
+    const btnClose = document.getElementById('closeScannerBtn');
+
+  
+
+    function log(obj) {
+        out.textContent = (typeof obj === 'string') ? obj : JSON.stringify(obj, null, 2);
+    }
+
+    function secureOk() {
+        return window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    }
+
+    async function getGpsOnce() {
+        try {
+            const pos = await new Promise((res, rej) =>
+                navigator.geolocation.getCurrentPosition(res, rej,
+                    { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 })
+            );
+            return {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                accuracy: pos.coords.accuracy
+            };
+        } catch {
+            return { lat: null, lng: null, accuracy: null };
+        }
+    }
+
+
+</script>
+
+<script>
+  
+  // Remember a session scanned locally
+  function hasScanned(sid){ return localStorage.getItem("att_scanned_"+sid) === "1"; }
+  function setScanned(sid){ try { localStorage.setItem("att_scanned_"+sid, "1"); } catch(_){} }
+
+  let scanner = null;
+  let running = false;
+  let scanLock = false;
+
+  async function startScanner(){
+    if (running) return;
+    // no sid on client (token is signed), so just allow opening; server will respond with sid
+    const cams = await Html5Qrcode.getCameras();
+    const camId = cams.find(c => /back|rear/i.test(c.label))?.id || cams[0].id;
+    if (!scanner) scanner = new Html5Qrcode("reader", { verbose:false });
+    document.getElementById('reader').style.display = 'block';
+    document.getElementById('closeScannerBtn').style.display = 'inline-block';
+    await scanner.start(camId, { fps:10, qrbox:250 }, onScanSuccess, () => {});
+    running = true;
+    log("Point camera at the QR…");
+  }
+
+  async function stopScanner(){
+    if (!scanner) return;
+    try { await scanner.stop(); } catch(_){}
+    try { await scanner.clear(); } catch(_){}
+    running = false;
+    document.getElementById('reader').style.display = 'none';
+    document.getElementById('closeScannerBtn').style.display = 'none';
+  }
+
+  async function onScanSuccess(text){
+    if (scanLock) return;
+    scanLock = true;
+    await stopScanner();
+    log("Submitting…");
+
+    try {
+      const r = await fetch(scanUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ token: text })
+      });
+      const data = await r.json();
+
+      if (r.ok && data.ok){
+        alert(data.message || "Attendance recorded");
+        if (data.sid) setScanned(String(data.sid));
+        // Disable the “Open Camera” button to prevent further scans
+        document.getElementById('openScannerBtn').disabled = true;
+      } else {
+        // If already scanned, remember it and keep the camera closed
+        if (data.already && data.sid){
+          setScanned(String(data.sid));
+          alert(data.message || "Already marked");
+          document.getElementById('openScannerBtn').disabled = true;
+        } else {
+          alert(data.message || data.error || "Failed to record attendance");
+        }
+      }
+    } catch(err){
+      alert("Network error: " + (err?.message || err));
+    } finally {
+      setTimeout(()=>{ scanLock = false; }, 1000);
+    }
+  }
+
+  // Buttons
+  document.getElementById('openScannerBtn').addEventListener('click', startScanner);
+  document.getElementById('closeScannerBtn').addEventListener('click', stopScanner);
+
+  // REMOVE this line (it auto-starts camera on page load)
+  // new Html5Qrcode("reader").start({ facingMode: "environment" }, { fps:10, qrbox:250 }, onScanSuccess);
+</script>
+
+</body>
+
+</html>
+
 {% endblock %}

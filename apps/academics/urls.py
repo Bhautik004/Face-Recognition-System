@@ -47,6 +47,7 @@ urlpatterns = [
     path("prof/sessions/<int:session_id>/lock/", views.session_lock, name="session_lock"),
     path("prof/sessions/<int:session_id>/unlock/", views.session_unlock, name="session_unlock"),
 
+    path("scan_qr/", views.scan_qr, name="scan_qr"),
     
     path(
         "prof/assignments/",

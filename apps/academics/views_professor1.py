@@ -114,6 +114,7 @@ def session_qr_png(request, session_id: int):
 
     # Generate rolling token per slot
     secret = getattr(settings, "QR_SERVER_SECRET", "change-me")
+   
     tok, payload = make_qr_token(s.id, s.room_id, s.qr_step_seconds, secret)
 
     # Make QR PNG

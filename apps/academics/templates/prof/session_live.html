@@ -2,24 +2,26 @@
 {% block content %}
 <h2>Live Session — {{ session.course_assignment.course.code }} @ {{ session.room.name }}</h2>
 
-<div id="waiting" {% if session.status == 'running' %}style="display:none"{% endif %}>
+<div id="waiting" {% if session.status  ==  "running" %}style="display:none" {% endif %}>
   <p>Session is scheduled. Waiting to start…</p>
   <p>It will switch to the QR automatically when it starts.</p>
 </div>
 
-<div id="live" {% if session.status != 'running' %}style="display:none"{% endif %}>
+<div id="live" {% if session.status != 'running' %}style="display:none" {% endif %}>
   <p>This QR rotates every {{ session.qr_step_seconds|default:10 }} seconds.</p>
   <img id="qr" src="{% url 'academics:prof_session_qr_png' session.id %}" alt="QR" width="240" height="240" />
   <div>Next QR refresh in: <span id="refreshIn">--</span>s</div>
 </div>
+
+
 <div style="margin-top:16px">
   <h3>Recent Marks</h3>
   <ul id="recent"></ul>
 </div>
 
 <form method="post" action="{% url 'academics:prof_session_stop' session.id %}" style="margin-top:15px;">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-danger">Stop Session</button>
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger">Stop Session</button>
 </form>
 
 
@@ -39,8 +41,8 @@
 
 {% if session.status != 'running' %}
 <script>
-    alert("This session is stopped.");
-    window.location.href = "{% url 'academics:prof_sessions_list' %}";
+  alert("This session is stopped.");
+  window.location.href = "{% url 'academics:prof_sessions_list' %}";
 </script>
 {% endif %}
 
@@ -50,59 +52,59 @@
   const recentUrl = "{% url 'academics:prof_session_recent' session.id %}";
   async function refreshRecent() {
     try {
-      const r = await fetch(recentUrl, {cache:"no-store"});
+      const r = await fetch(recentUrl, { cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
       const ul = document.getElementById('recent');
       ul.innerHTML = "";
       (d.recent || []).forEach(x => {
         const li = document.createElement('li');
-        li.textContent = `${x.ts} — ${x.name} (${x.status}) ${x.conf ? 'score '+x.conf.toFixed(2) : ''}`;
+        li.textContent = `${x.ts} — ${x.name} (${x.status}) ${x.conf ? 'score ' + x.conf.toFixed(2) : ''}`;
         ul.appendChild(li);
       });
-    } catch(e){}
+    } catch (e) { }
   }
   setInterval(refreshRecent, 5000);
   refreshRecent();
 </script>
 
 <script>
-const statsUrl = "{% url 'academics:prof_session_stats' session.id %}";
+  const statsUrl = "{% url 'academics:prof_session_stats' session.id %}";
 
-async function refreshStats() {
-  try {
-    const r = await fetch(statsUrl, {cache:'no-store'});
-    if (!r.ok) return;
-    const d = await r.json();
-    document.getElementById('sess_status').textContent = d.status;
-    document.getElementById('cnt_face').textContent = d.counts.face;
-    document.getElementById('cnt_qr').textContent   = d.counts.qr;
-    document.getElementById('cnt_total').textContent= d.counts.total;
-    if (d.last_seen){
-      const ts = new Date(d.last_seen).toLocaleTimeString();
-      document.getElementById('last_seen').textContent = `Last seen: ${ts}`;
-    } else {
-      document.getElementById('last_seen').textContent = "Last seen: —";
-    }
+  async function refreshStats() {
+    try {
+      const r = await fetch(statsUrl, { cache: 'no-store' });
+      if (!r.ok) return;
+      const d = await r.json();
+      document.getElementById('sess_status').textContent = d.status;
+      document.getElementById('cnt_face').textContent = d.counts.face;
+      document.getElementById('cnt_qr').textContent = d.counts.qr;
+      document.getElementById('cnt_total').textContent = d.counts.total;
+      if (d.last_seen) {
+        const ts = new Date(d.last_seen).toLocaleTimeString();
+        document.getElementById('last_seen').textContent = `Last seen: ${ts}`;
+      } else {
+        document.getElementById('last_seen').textContent = "Last seen: —";
+      }
 
-    if (d.last){
-      const ts = new Date(d.last.timestamp).toLocaleTimeString();
-      const txt = `Last mark: student ${d.last.student_id} via ${d.last.method.toUpperCase()} @ ${ts}` +
-                  (d.last.face_conf ? ` (score ${Number(d.last.face_conf).toFixed(2)})` : '');
-      document.getElementById('last_mark').textContent = txt;
-    } else {
-      document.getElementById('last_mark').textContent = "Last mark: —";
-    }
-  } catch(e) {}
-}
-setInterval(refreshStats, 5000);
-refreshStats();
+      if (d.last) {
+        const ts = new Date(d.last.timestamp).toLocaleTimeString();
+        const txt = `Last mark: student ${d.last.student_id} via ${d.last.method.toUpperCase()} @ ${ts}` +
+          (d.last.face_conf ? ` (score ${Number(d.last.face_conf).toFixed(2)})` : '');
+        document.getElementById('last_mark').textContent = txt;
+      } else {
+        document.getElementById('last_mark').textContent = "Last mark: —";
+      }
+    } catch (e) { }
+  }
+  setInterval(refreshStats, 5000);
+  refreshStats();
 </script>
 
 <script>
   const step = Number("{{ session.qr_step_seconds|default:'10'|safe }}");
   const statusUrl = "{% url 'academics:prof_session_status' session.id %}";
-  const backUrl   = "{% url 'academics:prof_session_list' %}?auto=1";
+  const backUrl = "{% url 'academics:prof_session_list' %}?auto=1";
 
   let qrTimer = null;
 
@@ -123,7 +125,7 @@ refreshStats();
 
   async function pollStatus() {
     try {
-      const r = await fetch(statusUrl, {cache: "no-store"});
+      const r = await fetch(statusUrl, { cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
       if (!d.ok) return;
@@ -140,7 +142,7 @@ refreshStats();
         document.getElementById('live')?.removeAttribute('style');
         startQrRotation();
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // Poll every 5s; also run once at load
@@ -148,10 +150,10 @@ refreshStats();
   pollStatus();
 
   // If page loaded already running, begin rotation immediately
-const sessionStatus = "{{ session.status }}";  // Django prints string here
-if (sessionStatus === "running") {
+  const sessionStatus = "{{ session.status }}";  // Django prints string here
+  if (sessionStatus === "running") {
     startQrRotation();
-}
+  }
 
 </script>
 {% endblock %}

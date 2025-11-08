@@ -35,6 +35,26 @@ from django.core.exceptions import PermissionDenied
 from .models import Session, Attendance, Student
 from .forms import SessionForm, AttendanceForm
 from .permissions import require_prof_owner
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from .models import Session, Attendance, Student
+import json, re
+import logging
+from django.conf import settings
+from .qr_simple import verify_qr_token
+from django.core.cache import cache
+from .models import Session, Attendance
+from .qr_simple import verify_qr_token  # your verifier for base64(json).base64(hmac)
+
+
+try:
+    import jwt  # PyJWT
+except Exception:
+    jwt = None
+
+QR_SALT = "academics.qr.salt"
 
 
 class ProfessorDashboard(APIView):
@@ -328,3 +348,101 @@ def session_unlock(request, session_id):
     session.is_locked = False
     session.save(update_fields=["is_locked"])
     return redirect("academics:session_detail", session_id=session.id)
+
+
+log = logging.getLogger(__name__)
+
+
+
+
+@csrf_exempt
+def scan_qr(request):
+    """
+    Accepts POST { "token": "<base64url(json)>.<base64url(hmac)>" }
+    Verifies token, requires logged-in student, and marks attendance once.
+    Returns:
+      200: {"ok": true,  "sid": <int>, "message": "Attendance recorded (Present|Late)"}
+      409: {"ok": false, "already": true, "sid": <int>, "message": "Already marked at ..."}
+      4xx: {"ok": false, "error": "..."}
+    """
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+
+    # ---- Parse body as JSON or raw text
+    raw = (request.body or b"").decode("utf-8", errors="ignore")
+    token = None
+    if request.META.get("CONTENT_TYPE", "").startswith("application/json"):
+        try:
+            token = (json.loads(raw or "{}")).get("token")
+        except Exception:
+            pass
+    if token is None and raw.strip():
+        token = raw.strip()
+
+    if not token:
+        return JsonResponse({"ok": False, "error": "Missing token"}, status=400)
+
+    # ---- Verify HMAC token & expiry (make sure settings.QR_SERVER_SECRET is set)
+    secret = getattr(settings, "QR_SERVER_SECRET", None)
+    if not secret:
+        return JsonResponse({"ok": False, "error": "Server QR secret not configured"}, status=500)
+
+    try:
+        payload = verify_qr_token(token, secret)
+        # payload must include: sid, rid, iat, exp (per your generator)
+        sid = int(payload["sid"])
+        rid = int(payload["rid"])
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": f"Invalid token: {e}"}, status=400)
+
+    # ---- Auth: must be logged-in student
+    if not request.user.is_authenticated or not hasattr(request.user, "student_profile"):
+        return JsonResponse({"ok": False, "error": "Login as student required"}, status=403)
+    student = request.user.student_profile
+
+    # ---- Load session & basic checks
+    session = get_object_or_404(Session.objects.select_related("room", "course_assignment"), id=sid)
+
+    # Enforce room match (optional but recommended)
+    if session.room_id != rid:
+        return JsonResponse({"ok": False, "error": "Room mismatch"}, status=400)
+
+    now = timezone.now()
+    if session.status != Session.STATUS_RUNNING:
+        return JsonResponse({"ok": False, "error": "Session not running"}, status=400)
+    if session.end_time and now > session.end_time:
+        return JsonResponse({"ok": False, "error": "Session ended"}, status=400)
+
+    # ---- Anti-replay (short cooldown) – optional but helpful
+    # Blocks multiple rapid POSTs for same (session, user)
+    lock_key = f"scan_lock:s{sid}:u{request.user.id}"
+    if cache.get(lock_key):
+        # Treat as already handled to avoid spamming DB
+        existing = Attendance.objects.filter(session=session, student=student).first()
+        if existing and existing.status in ("Present", "Late"):
+            when = existing.timestamp.astimezone(timezone.get_current_timezone()).strftime("%Y-%m-%d %H:%M")
+            return JsonResponse({"ok": False, "already": True, "sid": sid, "message": f"Already marked at {when}"}, status=409)
+    cache.set(lock_key, 1, 15)  # 15s cooldown
+
+    # ---- Idempotency: if already Present/Late, don't update/overwrite
+    existing = Attendance.objects.filter(session=session, student=student).first()
+    if existing and existing.status in ("Present", "Late"):
+        when = existing.timestamp.astimezone(timezone.get_current_timezone()).strftime("%Y-%m-%d %H:%M")
+        return JsonResponse({"ok": False, "already": True, "sid": sid, "message": f"Already marked at {when}"}, status=409)
+
+    # ---- First mark only
+    late_cutoff = session.start_time + timezone.timedelta(minutes=10)
+    status_value = "Present" if now <= late_cutoff else "Late"
+
+    Attendance.objects.get_or_create(
+        session=session,
+        student=student,
+        defaults={
+            "status": status_value,
+            "method": "qr",
+            "geo_ok": True,    # set from GPS if you pass it later
+            "timestamp": now,
+        },
+    )
+
+    return JsonResponse({"ok": True, "sid": sid, "message": f"Attendance recorded ({status_value})"}, status=200)

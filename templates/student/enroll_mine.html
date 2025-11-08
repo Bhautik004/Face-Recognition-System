@@ -10,24 +10,24 @@
 <table>
   <thead>
     <tr>
-      <th>Course</th><th>Professor</th><th>Term/Section</th><th>Status</th><th>Action</th>
+      <th>Course</th>
+      <th>Professor</th>
+      <th>Term/Section</th>
+      <th>Status</th>
+
     </tr>
   </thead>
   <tbody>
-  {% for e in enrollments %}
+    {% for e in enrollments %}
     <tr>
       <td>{{ e.course_assignment.course.code }} — {{ e.course_assignment.course.title }}</td>
-      <td>{{ e.course_assignment.professor.user.get_full_name|default:e.course_assignment.professor.user.username }}</td>
+      <td>{{ e.course_assignment.professor.user.get_full_name|default:e.course_assignment.professor.user.username }}
+      </td>
       <td>{{ e.course_assignment.term }} {{ e.course_assignment.section }}</td>
       <td>{{ e.get_status_display }}</td>
-      <td>
-        <form method="post" action="{% url 'academics:student_enroll_drop' e.id %}">
-          {% csrf_token %}
-          <button type="submit">Drop</button>
-        </form>
-      </td>
+
     </tr>
-  {% endfor %}
+    {% endfor %}
   </tbody>
 </table>
 {% else %}

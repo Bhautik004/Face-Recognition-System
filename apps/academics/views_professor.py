@@ -143,7 +143,7 @@ def session_start(request, session_id: int):
         s.status = Session.STATUS_RUNNING
         s.save(update_fields=["status"])
         start_cam_for_session(s.id, cam_source=0)
-        cam_source = 0
+        cam_source = 1
         launch_face_worker(s.id, cam_source=cam_source)
 
    
@@ -255,8 +255,7 @@ def session_stats(request, session_id: int):
     Attendance = django_apps.get_model("academics", "Attendance")
 
     s = get_object_or_404(Session, id=session_id)
-    # TODO: permission check: ensure request.user is that session's professor
-
+    
     total_face = Attendance.objects.filter(session_id=session_id, method="face").count()
     total_qr   = Attendance.objects.filter(session_id=session_id, method="qr").count()
     total_all  = total_face + total_qr

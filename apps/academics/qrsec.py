@@ -1,5 +1,6 @@
 import base64, hmac, hashlib, json, time
 
+
 def make_qr_token(session_id: int, room_id: int, step_seconds: int, secret: str, now=None):
     """
     Rolling token valid for current 10s (or step) window.

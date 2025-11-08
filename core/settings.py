@@ -20,7 +20,7 @@ from apps.academics.scheduler import start_scheduler
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+DEBUG = True
 # URL prefix for static files
 STATIC_URL = "/static/"
 STATIC = os.path.join(BASE_DIR, "staticfiles")
@@ -28,6 +28,13 @@ STATIC = os.path.join(BASE_DIR, "staticfiles")
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+ALLOWED_HOSTS = ["*","10.0.0.233:8000","localhost","10.0.0.233","https://c60622f71d29.ngrok-free.app"]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://10.0.0.233:8000",
+    "https://c60622f71d29.ngrok-free.app"
+]
 
 
 # Quick-start development settings - unsuitable for production
@@ -39,7 +46,10 @@ SECRET_KEY = 'al8zghf%e(#1)7#u78og(exeoohpx5*$p$wfjefa2igwziod!i'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+TEST_MODE = False
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 
 

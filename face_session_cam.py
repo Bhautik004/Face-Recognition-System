@@ -25,7 +25,7 @@ SHOW_PREVIEW  = os.environ.get("PREVIEW", "0") == "1"  # set PREVIEW=1 to see a 
 # We'll use get_model inside helpers so the module import order never breaks.
 
 # ---------------- Camera helpers ----------------
-def open_cam(source=0, width=1280, height=720, force_mjpg=False):
+def open_cam(source=1, width=1280, height=720, force_mjpg=False):
     """
     Open camera with DirectShow only (stable on your machine).
     `source` can be int index (0) or device name string: "video=<name>".

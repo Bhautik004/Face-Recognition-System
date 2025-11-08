@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.apps import apps as django_apps
 from django.core.cache import cache
 from insightface.app import FaceAnalysis
+from django.conf import settings
 
 # pick ONE loader:
 from .whitelist import load_session_whitelist  # DB centroids (UserEmbeddingTemplate)
@@ -14,6 +15,8 @@ from .whitelist import load_session_whitelist  # DB centroids (UserEmbeddingTemp
 _SIM_THRESH   = 0.35   # start lower to validate; later 0.55–0.60
 _COOLDOWN_SEC = 20
 _WORKERS = {}
+
+
 
 def _normalize_rows(M: np.ndarray) -> np.ndarray:
     M = M.astype(np.float32, copy=False)
@@ -30,11 +33,13 @@ def _cosine(a, B):
     return np.dot(B, a)
 
 class ProfCamWorker(threading.Thread):
-    def __init__(self, session_id, cam_source=0):
+    def __init__(self, session_id, cam_source = 0):
         super().__init__(daemon=True)
         self.session_id = session_id
+        self.cam_source = 0
         self.cam_source = cam_source
         self._stop = threading.Event()
+        self.cap = None
         self.Session     = django_apps.get_model("academics", "Session")
         self.Attendance  = django_apps.get_model("academics", "Attendance")
         self.Student     = django_apps.get_model("academics", "Student")
@@ -61,7 +66,7 @@ class ProfCamWorker(threading.Thread):
             cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
         except (ValueError, TypeError):
             dev = f"video={self.cam_source}"
-            cap = cv2.VideoCapture(dev, cv2.CAP_DSHOW)
+            cap = cv2.VideoCapture(self.cam_source, cv2.CAP_DSHOW)
 
         if not cap or not cap.isOpened():
             print(f"[CAM {self.session_id}] ERROR: Cannot open camera {self.cam_source} via DSHOW")
@@ -78,10 +83,15 @@ class ProfCamWorker(threading.Thread):
             print(f"[CAM {self.session_id}] ERROR: warm-up read failed")
             cap.release()
             return None
-        print(f"[CAM {self.session_id}] Camera opened (DSHOW) src={self.cam_source}")
+        print(f"[CAM {self.session_id}] Camera opened 1(DSHOW) src={self.cam_source}")
+
         return cap
 
     def run(self):
+        if getattr(settings, "TEST_MODE", False):
+            print(f"[CAM {self.session_id}] TEST_MODE — skipping camera thread.")
+            return
+
         if self.emb_matrix is None or len(self.student_ids) == 0:
             print(f"[CAM {self.session_id}] No enrolled embeddings; worker not started.")
             return
@@ -90,6 +100,7 @@ class ProfCamWorker(threading.Thread):
         cap = self._open_camera()
         if not cap:
             return
+        self.cap = cap
 
         print(f"[CAM {self.session_id}] Running with {len(self.student_ids)} enrolled vectors")
         try:
@@ -174,7 +185,7 @@ class ProfCamWorker(threading.Thread):
     def stop(self):
         self._stop.set()
 
-def start_cam_for_session(session_id, cam_source=0):
+def start_cam_for_session(session_id, cam_source=1):
     if session_id in _WORKERS:
         print(f"[CAM {session_id}] Worker already running")
         return
